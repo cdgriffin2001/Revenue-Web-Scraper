@@ -24,8 +24,6 @@ To run this project, you need:
 
 ## Installation
 1. Clone this repository to your local machine:
-git clone https://github.com/cdgriffin2001/Revenue-Web-Scraper.git
-cd Revenue-Web-Scraper
 
 2. Install the required dependencies:
 pip install -r requirements.txt
