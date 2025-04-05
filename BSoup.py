@@ -8,6 +8,7 @@ from collections import Counter, defaultdict
 import numpy as np
 from urllib.parse import quote_plus
 import math 
+import os
 from playwright.sync_api import sync_playwright
 
 
@@ -164,6 +165,8 @@ def find_company_revenue(company_name, company_address, revenue_site, city):
                         if 'revenue' in text.lower():
                             result = parse_revenue(text)
                             if result:
+                                # print(f'text: {text}')
+                                # print(f'result: {result}')
                                 return (result, text)
                 
                 return None
@@ -196,7 +199,10 @@ def get_match_confidence(result_text, company_name, company_address):
 
     # Name matching improvements
     name_in_result = clean_name in clean_result
+    # print("name in result")
+    # print(name_in_result)
     partial_ratio = SequenceMatcher(None, clean_name, clean_result).ratio()
+
     
     # Adjusted matching criteria
     name_match = any([
@@ -204,6 +210,9 @@ def get_match_confidence(result_text, company_name, company_address):
         partial_ratio > 0.85,
         len(clean_name.split()) == 1 and partial_ratio > 0.75
     ])
+
+    # print("name match")
+    # print(name_match)
 
     # Address verification
     address_match = False
@@ -214,10 +223,14 @@ def get_match_confidence(result_text, company_name, company_address):
         address_match = matches >= 2
 
     if name_match and address_match:
+        # print("both match")
         return 2
     elif name_match or address_match:
+        # print("one match")
         return 1
+    # print("no match")
     return 0
+
 def calculate_discrepancy(values):
     """Calculate coefficient of variation to measure spread"""
     if len(values) < 2:
@@ -236,6 +249,11 @@ def process_results(confidence_groups):
         # Convert to millions for comparison
         values = [v if v < 1e6 else v/1e6 for v in group]
         
+        # NEW: Check high-revenue/no-match FIRST before other logic
+        if confidence == 0 and all(v > 100 for v in values):
+            print("Rejected high revenues with no name match")
+            return "N/A"
+
         # Scenario: Single result handling
         if len(values) == 1:
             if confidence == 2:  # High confidence match
@@ -287,10 +305,13 @@ def revenue_web_scrape(company_name, company_loc, city):
         conf = get_match_confidence(text, company_name, company_loc)
         confidence_groups[conf].append(value)
 
+    # print("confidence groups")
+    # print(confidence_groups)
+
     return process_results(confidence_groups)
 
 # #####FOR TESTING############
-# company_name = "CLOVER MEADOW LLC"
+# company_name = "CLOVER MEADOW LLC" #VAN DRASTIC, LLC
 # company_loc = "23396 THOMPSON RD"
 # city= "SHELL LAKE"
 
@@ -313,10 +334,6 @@ def sanitize_value(value):
     ):
         return ''
     return str(value)  # Convert to string if needed
-
-
-import os
-import pandas as pd
 
 def get_processed_count():
     """Returns number of completed rows with atomic write safety"""
